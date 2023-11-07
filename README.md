@@ -489,5 +489,67 @@ Job succeeded
 ```
 </details>
 3. При создании тега (например, v1.0.0) происходит сборка и отправка с соответствующим label в регистр, а также деплой соответствующего Docker образа в кластер Kubernetes.
+Выпустим релиз с тегом 1.1
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/e68e1fb0-7d8c-4c11-bd77-99edb8cd42bf)
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/43263bde-5c71-4d5e-9cd1-4175a784fa79)
+
+Запустится конвейер, где сначала сбилдится image с тегом 1.1 и загрузится в регистр
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/e82362ed-5451-46d5-b270-b4757a893b7c)
+
+А потом выполнится деплой из регистра в кластер k8s
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/2042aaa9-0fb8-41db-8fd6-4281710b4e98)
+
+<details>
+ <summary>job log</summary>
+
+```bash
+Running with gitlab-runner 16.5.0 (853330f9)
+  on gitlab-runner-6fb47fc555-txvqh ATTpUCtB, system ID: r_fstbTxSKKsdC
+Preparing the "kubernetes" executor
+00:00
+Using Kubernetes namespace: gitlab
+Using Kubernetes executor with image gcr.io/cloud-builders/kubectl:latest ...
+Using attach strategy to execute scripts...
+Preparing environment
+Using FF_USE_POD_ACTIVE_DEADLINE_SECONDS, the Pod activeDeadlineSeconds will be set to the job timeout: 1h0m0s...
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6mf3cx8l to be running, status is Pending
+Running on runner-attpuctb-project-1-concurrent-0-6mf3cx8l via gitlab-runner-6fb47fc555-txvqh...
+Getting source from Git repository
+00:03
+Fetching changes with git depth set to 20...
+Initialized empty Git repository in /builds/root/simple_landing/.git/
+Created fresh repository.
+Checking out 63c1c9aa as detached HEAD (ref is 1.1)...
+Skipping Git submodules setup
+Executing "step_script" stage of the job script
+$ kubectl config set-cluster "diplomregionalcluster" --server="$KUBE_URL" --insecure-skip-tls-verify=true
+Cluster "diplomregionalcluster" set.
+$ kubectl config set-credentials admin-user --token="$KUBE_TOKEN"
+User "admin-user" set.
+$ kubectl config set-context stage --cluster="diplomregionalcluster" --user=admin-user
+Context "stage" created.
+$ kubectl config use-context stage
+Switched to context "stage".
+$ sed -i "s,__VERSION__,"$DOCKER_IMAGE_NAME"," k8s.yaml
+$ kubectl apply -f k8s.yaml
+deployment.apps/simpleapp configured
+service/simpleapp unchanged
+Cleaning up project directory and file based variables
+00:01
+Job succeeded
+```
+</details>
+
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/da4d28b6-4af0-4a96-b106-d22de91b1fe4)
+
+В докерхабе
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/8827ba28-d4b0-44ce-9476-07967f08985f)
+
+Надпись на кнопке изменилась в тестовом приложении
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/21b6d2c7-3a43-4b6c-8bcb-b20a34821f43)
 
 ---
