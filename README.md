@@ -42,15 +42,15 @@
 
 ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/45ff8ce8-8561-48e7-be86-1f0183c67c56)
 
-[-]4. Создайте VPC с подсетями в разных зонах доступности.
+4. Создайте VPC с подсетями в разных зонах доступности.
 
 ```Делал через Yandex Managed Service for Kubernetes``` 
 
-[-]5. Убедитесь, что теперь вы можете выполнить команды `terraform destroy` и `terraform apply` без дополнительных ручных действий.
+5. Убедитесь, что теперь вы можете выполнить команды `terraform destroy` и `terraform apply` без дополнительных ручных действий.
 
 ```В следующем пункте создан Kubernetes кластер через терраформ``` 
 
-[-]6. В случае использования [Terraform Cloud](https://app.terraform.io/) в качестве [backend](https://www.terraform.io/docs/language/settings/backends/index.html) убедитесь, что применение изменений успешно проходит, используя web-интерфейс Terraform cloud.
+6. В случае использования [Terraform Cloud](https://app.terraform.io/) в качестве [backend](https://www.terraform.io/docs/language/settings/backends/index.html) убедитесь, что применение изменений успешно проходит, используя web-интерфейс Terraform cloud.
 
 Ожидаемые результаты:
 
