@@ -25,7 +25,7 @@ kubectl create namespace gitlab
 helm install --namespace gitlab gitlab-runner gitlab/gitlab-runner \
   --set rbac.create=true \
   --set gitlabUrl=https://git.askarpoff.site/ \
-  --set ${runnertoken} \
+  --set runnerRegistrationToken=$(cat runnertoken) \
   -f ./gitlab/config.toml
 
 
@@ -33,7 +33,7 @@ helm install --namespace gitlab gitlab-runner gitlab/gitlab-runner \
 #kubectl get all -n monitoring
 
 kubectl create namespace stage
-kubectl create secret docker-registry regcred --docker-username=askarpoff --docker-password={$dockertoken} --docker-email=askarpoff@gmail.com -n stage
+kubectl create secret docker-registry regcred --docker-username=askarpoff --docker-password=$(cat dockertoken) --docker-email=askarpoff@gmail.com -n stage
 
 helm install --namespace stage ingress-nginx ingress-nginx/ingress-nginx
 
