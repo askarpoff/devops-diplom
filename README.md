@@ -26,22 +26,31 @@
 [+] 1. Создайте сервисный аккаунт, который будет в дальнейшем использоваться Terraform для работы с инфраструктурой с необходимыми и достаточными правами. Не стоит использовать права суперпользователя  
 ```Сервисный аккаунт с правами Editor```
 
-2. Подготовьте [backend](https://www.terraform.io/docs/language/settings/backends/index.html) для Terraform:  
+[+]2. Подготовьте [backend](https://www.terraform.io/docs/language/settings/backends/index.html) для Terraform:  
    <strike>а. Рекомендуемый вариант: [Terraform Cloud](https://app.terraform.io/) </strike> 
 
    б. Альтернативный вариант: S3 bucket в созданном ЯО аккаунте
 
    ```сделал S3 бакет т.к. без VPN не дает зайти в Terraform Cloud```
+   
+   ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/72d656ba-fa17-4367-bfce-d1bd6d4bdb6a)
 
-4. Настройте [workspaces](https://www.terraform.io/docs/language/state/workspaces.html)  
-   а. Рекомендуемый вариант: создайте два workspace: *stage* и *prod*. В случае выбора этого варианта все последующие шаги должны учитывать факт существования нескольких workspace.  
+
+[+]3. Настройте [workspaces](https://www.terraform.io/docs/language/state/workspaces.html)  
+  <strike> а. Рекомендуемый вариант: создайте два workspace: *stage* и *prod*. В случае выбора этого варианта все последующие шаги должны учитывать факт существования нескольких workspace.  </strike>
    б. Альтернативный вариант: используйте один workspace, назвав его *stage*. Пожалуйста, не используйте workspace, создаваемый Terraform-ом по-умолчанию (*default*).
 
-5. Создайте VPC с подсетями в разных зонах доступности.
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/45ff8ce8-8561-48e7-be86-1f0183c67c56)
 
-6. Убедитесь, что теперь вы можете выполнить команды `terraform destroy` и `terraform apply` без дополнительных ручных действий.
+[-]4. Создайте VPC с подсетями в разных зонах доступности.
 
-7. В случае использования [Terraform Cloud](https://app.terraform.io/) в качестве [backend](https://www.terraform.io/docs/language/settings/backends/index.html) убедитесь, что применение изменений успешно проходит, используя web-интерфейс Terraform cloud.
+```Делал через Yandex Managed Service for Kubernetes``` 
+
+[-]5. Убедитесь, что теперь вы можете выполнить команды `terraform destroy` и `terraform apply` без дополнительных ручных действий.
+
+```В следующем пункте создан Kubernetes кластер через терраформ``` 
+
+[-]6. В случае использования [Terraform Cloud](https://app.terraform.io/) в качестве [backend](https://www.terraform.io/docs/language/settings/backends/index.html) убедитесь, что применение изменений успешно проходит, используя web-интерфейс Terraform cloud.
 
 Ожидаемые результаты:
 
@@ -55,19 +64,22 @@
 
 Это можно сделать двумя способами:
 
-1. Рекомендуемый вариант: самостоятельная установка Kubernetes кластера.  
+<strike>1. Рекомендуемый вариант: самостоятельная установка Kubernetes кластера.  
    а. При помощи Terraform подготовить как минимум 3 виртуальных машины Compute Cloud для создания Kubernetes-кластера. Тип виртуальной машины следует выбрать самостоятельно с учётом требовании к производительности и стоимости. Если в дальнейшем поймете, что необходимо сменить тип инстанса, используйте Terraform для внесения изменений.  
    б. Подготовить [ansible](https://www.ansible.com/) конфигурации, можно воспользоваться, например [Kubespray](https://kubernetes.io/docs/setup/production-environment/tools/kubespray/)  
-   в. Задеплоить Kubernetes на подготовленные ранее инстансы, в случае нехватки каких-либо ресурсов вы всегда можете создать их при помощи Terraform.
-2. Альтернативный вариант: воспользуйтесь сервисом [Yandex Managed Service for Kubernetes](https://cloud.yandex.ru/services/managed-kubernetes)  
+   в. Задеплоить Kubernetes на подготовленные ранее инстансы, в случае нехватки каких-либо ресурсов вы всегда можете создать их при помощи Terraform.</strike>
+[+] 2. Альтернативный вариант: воспользуйтесь сервисом [Yandex Managed Service for Kubernetes](https://cloud.yandex.ru/services/managed-kubernetes)  
   а. С помощью terraform resource для [kubernetes](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/kubernetes_cluster) создать региональный мастер kubernetes с размещением нод в разных 3 подсетях      
   б. С помощью terraform resource для [kubernetes node group](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/kubernetes_node_group)
   
 Ожидаемый результат:
 
-1. Работоспособный Kubernetes кластер.
-2. В файле `~/.kube/config` находятся данные для доступа к кластеру.
-3. Команда `kubectl get pods --all-namespaces` отрабатывает без ошибок.
+[+]1. Работоспособный Kubernetes кластер.
+
+[+]2. В файле `~/.kube/config` находятся данные для доступа к кластеру.
+
+[+]3. Команда `kubectl get pods --all-namespaces` отрабатывает без ошибок.
+
 
 ---
 ### Создание тестового приложения
