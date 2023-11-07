@@ -78,6 +78,9 @@
 
 ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/91544af9-5dad-4f7d-9bb9-7cda921491e3)
 
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/29ea6cb9-0254-4f8e-be05-d6aca6468726)
+
+
 [+]2. В файле `~/.kube/config` находятся данные для доступа к кластеру.
 
 ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/a9e79264-2592-4e2e-890f-70614929d698)
