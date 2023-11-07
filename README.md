@@ -554,4 +554,7 @@ Job succeeded
 
 ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/21b6d2c7-3a43-4b6c-8bcb-b20a34821f43)
 
+
+Cкрипт destroy.sh удаляет инфраструтуру из Yandex cloud.
+
 ---
