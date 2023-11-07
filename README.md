@@ -229,10 +229,43 @@ deploy:
 ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/57c731a9-f2f1-4551-a829-37ddd6165eb6)
 
 3. Http доступ к web интерфейсу grafana.
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/7586f00e-62c6-43fa-a45c-ac5352101fef)
+
+Доступ к Graphana предоставлен через LoadBalancer, 3000 порт.
+Через Ingress не получилось, т.к. срабатывает перенаправление на /login
 
 4. Дашборды в grafana отображающие состояние Kubernetes кластера.
 
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/2e9c042b-90e3-42d2-ac82-f4c91fa4b6ac)
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/b610f365-b85d-4a50-b6e2-6da1810e1588)
+
 5. Http доступ к тестовому приложению.
+Доступ к тестовому приложению организован через Ingress
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress
+  namespace: stage
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+            service:
+              name: simpleapp
+              port:
+                number: 80
+```
+IP для доступа виден в External IP
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/19260978-f54a-425e-9f10-8c3d66d1d1f6)
+
+По этому IP открывается сайт-лендинг(тестовое приложение)
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/964160e4-9bbd-4fa5-bfec-093ef49bd25b)
 
 ---
 ### Установка и настройка CI/CD
@@ -249,7 +282,211 @@ deploy:
 Ожидаемый результат:
 
 1. Интерфейс ci/cd сервиса доступен по http.
+   
+Все реализовано через <b>.gitlab-ci.yml</b>
+```
+docker-build:
+  image: docker:cli
+  stage: build
+  services:
+    - docker:dind
+  variables:
+    DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build  -t "$DOCKER_IMAGE_NAME" .
+    - docker push "$DOCKER_IMAGE_NAME"
+  rules:
+    - if: $CI_COMMIT_BRANCH
+      exists:
+        - Dockerfile
+docker-build-tag:
+  only: [tags]
+  image: docker:cli
+  stage: build
+  services:
+    - docker:dind
+  variables:
+    DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build  -t "$DOCKER_IMAGE_NAME" .
+    - docker push "$DOCKER_IMAGE_NAME"
+deploy:
+  only: [tags]
+  image: gcr.io/cloud-builders/kubectl:latest
+  stage: deploy
+  variables:
+    DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+  script:
+    - kubectl config set-cluster "diplomregionalcluster" --server="$KUBE_URL" --insecure-skip-tls-verify=true
+    - kubectl config set-credentials admin-user --token="$KUBE_TOKEN"
+    - kubectl config set-context stage --cluster="diplomregionalcluster" --user=admin-user
+    - kubectl config use-context stage
+    - sed -i "s,__VERSION__,"$DOCKER_IMAGE_NAME"," k8s.yaml
+    - kubectl apply -f k8s.yaml
+```
 2. При любом коммите в репозиторие с тестовым приложением происходит сборка и отправка в регистр Docker образа.
+Исправим кнопку
+ ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/4e8a80af-6195-42f4-9f26-b3566cb21085)
+
+Происходит сборка контейнера
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/4764968a-c7a0-4ad4-9f48-b14f5f4aa414)
+<details>
+ <summary>job log</summary>
+```
+Running with gitlab-runner 16.5.0 (853330f9)
+  on gitlab-runner-6fb47fc555-txvqh ATTpUCtB, system ID: r_fstbTxSKKsdC
+Preparing the "kubernetes" executor
+00:00
+Using Kubernetes namespace: gitlab
+Using Kubernetes executor with image docker:cli ...
+Using attach strategy to execute scripts...
+Preparing environment
+00:27
+Using FF_USE_POD_ACTIVE_DEADLINE_SECONDS, the Pod activeDeadlineSeconds will be set to the job timeout: 1h0m0s...
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6vwr975n to be running, status is Pending
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6vwr975n to be running, status is Pending
+	ContainersNotInitialized: "containers with incomplete status: [init-permissions]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6vwr975n to be running, status is Pending
+	ContainersNotInitialized: "containers with incomplete status: [init-permissions]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6vwr975n to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6vwr975n to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6vwr975n to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6vwr975n to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+Waiting for pod gitlab/runner-attpuctb-project-1-concurrent-0-6vwr975n to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+Running on runner-attpuctb-project-1-concurrent-0-6vwr975n via gitlab-runner-6fb47fc555-txvqh...
+Getting source from Git repository
+00:02
+Fetching changes with git depth set to 20...
+Initialized empty Git repository in /builds/root/simple_landing/.git/
+Created fresh repository.
+Checking out 63c1c9aa as detached HEAD (ref is main)...
+Skipping Git submodules setup
+Executing "step_script" stage of the job script
+00:24
+$ docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+WARNING! Using --password via the CLI is insecure. Use --password-stdin.
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+Login Succeeded
+$ docker build  -t "$DOCKER_IMAGE_NAME" .
+#0 building with "default" instance using docker driver
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 79B done
+#1 DONE 0.1s
+#2 [internal] load .dockerignore
+#2 transferring context: 2B done
+#2 DONE 0.1s
+#3 [internal] load metadata for docker.io/library/nginx:latest
+#3 ...
+#4 [auth] library/nginx:pull token for registry-1.docker.io
+#4 DONE 0.0s
+#3 [internal] load metadata for docker.io/library/nginx:latest
+#3 DONE 2.1s
+#5 [1/2] FROM docker.io/library/nginx@sha256:86e53c4c16a6a276b204b0fd3a8143d86547c967dc8258b3d47c3a21bb68d3c6
+#5 resolve docker.io/library/nginx@sha256:86e53c4c16a6a276b204b0fd3a8143d86547c967dc8258b3d47c3a21bb68d3c6
+#5 resolve docker.io/library/nginx@sha256:86e53c4c16a6a276b204b0fd3a8143d86547c967dc8258b3d47c3a21bb68d3c6 0.1s done
+#5 ...
+#6 [internal] load build context
+#6 transferring context: 12.38MB 0.2s done
+#6 DONE 0.3s
+#5 [1/2] FROM docker.io/library/nginx@sha256:86e53c4c16a6a276b204b0fd3a8143d86547c967dc8258b3d47c3a21bb68d3c6
+#5 sha256:86e53c4c16a6a276b204b0fd3a8143d86547c967dc8258b3d47c3a21bb68d3c6 1.86kB / 1.86kB done
+#5 sha256:c20060033e06f882b0fbe2db7d974d72e0887a3be5e554efdb0dcf8d53512647 8.15kB / 8.15kB done
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 0B / 41.38MB 0.2s
+#5 sha256:85c41ebe6d660b75d8e2e985314ebce75e602330cd325bc5cfbf9d9723c329a1 0B / 627B 0.2s
+#5 sha256:d2e65182b5fd330470eca9b8e23e8a1a0d87cc9b820eb1fb3f034bf8248d37ee 1.78kB / 1.78kB done
+#5 sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9 0B / 29.15MB 0.2s
+#5 sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9 5.24MB / 29.15MB 0.3s
+#5 sha256:85c41ebe6d660b75d8e2e985314ebce75e602330cd325bc5cfbf9d9723c329a1 627B / 627B 0.4s done
+#5 sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9 11.53MB / 29.15MB 0.4s
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 3.15MB / 41.38MB 0.5s
+#5 sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9 19.92MB / 29.15MB 0.5s
+#5 sha256:7170a263b582e6a7b5f650b7f1c146267f694961f837ffefc2505bb9148dd4b0 0B / 958B 0.5s
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 15.73MB / 41.38MB 0.7s
+#5 sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9 26.21MB / 29.15MB 0.7s
+#5 sha256:7170a263b582e6a7b5f650b7f1c146267f694961f837ffefc2505bb9148dd4b0 958B / 958B 0.7s
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 20.97MB / 41.38MB 0.8s
+#5 sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9 29.15MB / 29.15MB 0.8s
+#5 sha256:7170a263b582e6a7b5f650b7f1c146267f694961f837ffefc2505bb9148dd4b0 958B / 958B 0.7s done
+#5 sha256:8f28d06e2e2ec58753e1acf21d96619aafeab87e63e06fb0590f56091db38014 0B / 367B 0.8s
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 26.21MB / 41.38MB 1.0s
+#5 sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9 29.15MB / 29.15MB 0.9s done
+#5 sha256:8f28d06e2e2ec58753e1acf21d96619aafeab87e63e06fb0590f56091db38014 367B / 367B 1.0s done
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 28.49MB / 41.38MB 1.1s
+#5 extracting sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9
+#5 sha256:c1dfc7e1671e8340003503af03d067bae6846c12c30cbc1af3e589cb124fd45d 0B / 1.40kB 1.1s
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 35.65MB / 41.38MB 1.2s
+#5 sha256:6f837de2f88742f4e8083bff54bd1c64c1df04e6679c343d1a1c9a650078fd48 0B / 1.21kB 1.2s
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 39.85MB / 41.38MB 1.3s
+#5 sha256:c1dfc7e1671e8340003503af03d067bae6846c12c30cbc1af3e589cb124fd45d 1.40kB / 1.40kB 1.2s done
+#5 sha256:6f837de2f88742f4e8083bff54bd1c64c1df04e6679c343d1a1c9a650078fd48 1.21kB / 1.21kB 1.3s done
+#5 sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 41.38MB / 41.38MB 2.2s done
+#5 extracting sha256:578acb154839e9d0034432e8f53756d6f53ba62cf8c7ea5218a2476bf5b58fc9 1.7s done
+#5 extracting sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780
+#5 extracting sha256:e398db710407fbc310b4bc0b0db1c94161480ac9b44638c6655939f426529780 1.3s done
+#5 extracting sha256:85c41ebe6d660b75d8e2e985314ebce75e602330cd325bc5cfbf9d9723c329a1
+#5 extracting sha256:85c41ebe6d660b75d8e2e985314ebce75e602330cd325bc5cfbf9d9723c329a1 done
+#5 extracting sha256:7170a263b582e6a7b5f650b7f1c146267f694961f837ffefc2505bb9148dd4b0 done
+#5 extracting sha256:8f28d06e2e2ec58753e1acf21d96619aafeab87e63e06fb0590f56091db38014 done
+#5 extracting sha256:6f837de2f88742f4e8083bff54bd1c64c1df04e6679c343d1a1c9a650078fd48
+#5 extracting sha256:6f837de2f88742f4e8083bff54bd1c64c1df04e6679c343d1a1c9a650078fd48 done
+#5 extracting sha256:c1dfc7e1671e8340003503af03d067bae6846c12c30cbc1af3e589cb124fd45d done
+#5 DONE 6.0s
+#7 [2/2] COPY src /usr/share/nginx/html
+#7 DONE 2.0s
+#8 exporting to image
+#8 exporting layers
+#8 exporting layers 0.1s done
+#8 writing image sha256:e1805a3bb577ce773d3f08d7d1b04b50792da76b56300ce46a1c735945231848 done
+#8 naming to docker.io/askarpoff/simple_landing:latest done
+#8 DONE 0.1s
+WARNING: buildx: git was not found in the system. Current commit information was not captured by the build
+$ docker push "$DOCKER_IMAGE_NAME"
+The push refers to repository [docker.io/askarpoff/simple_landing]
+cac1cbe5953d: Preparing
+505f49f13fbe: Preparing
+9920f1ebf52b: Preparing
+768e28a222fd: Preparing
+715b32fa0f12: Preparing
+e503754c9a26: Preparing
+609f2a18d224: Preparing
+ec983b166360: Preparing
+e503754c9a26: Waiting
+609f2a18d224: Waiting
+ec983b166360: Waiting
+768e28a222fd: Layer already exists
+9920f1ebf52b: Layer already exists
+505f49f13fbe: Layer already exists
+715b32fa0f12: Layer already exists
+e503754c9a26: Layer already exists
+609f2a18d224: Layer already exists
+ec983b166360: Layer already exists
+cac1cbe5953d: Pushed
+latest: digest: sha256:a6011dc1f416548bd31e99c96da709631e579553ac840097c133cd81642d5730 size: 1990
+Cleaning up project directory and file based variables
+00:00
+Job succeeded
+```
+</details>
 3. При создании тега (например, v1.0.0) происходит сборка и отправка с соответствующим label в регистр, а также деплой соответствующего Docker образа в кластер Kubernetes.
 
 ---
