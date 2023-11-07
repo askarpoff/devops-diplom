@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simpleapp
+  namespace: stage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simpleapp
+  template:
+    metadata:
+      namespace: simpleapp
+      labels:
+        app: simpleapp
+    spec:
+      containers:
+        - name: simpleapp
+          image: askarpoff/simple_landing:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets: 
+        - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: simpleapp
+  namespace: stage
+spec:
+  ports:
+  - name: http-simpleapp
+    port: 80
+    targetPort: 80
+  selector:
+    app: simpleapp
+  type: ClusterIP
