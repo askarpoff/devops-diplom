@@ -336,7 +336,8 @@ deploy:
 ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/4764968a-c7a0-4ad4-9f48-b14f5f4aa414)
 <details>
  <summary>job log</summary>
-```
+	
+```bash
 Running with gitlab-runner 16.5.0 (853330f9)
   on gitlab-runner-6fb47fc555-txvqh ATTpUCtB, system ID: r_fstbTxSKKsdC
 Preparing the "kubernetes" executor
