@@ -106,7 +106,17 @@
 Ожидаемый результат:
 
 1. Git репозиторий с тестовым приложением и Dockerfile.
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/0008cafa-e07d-435b-a73a-83b705c48440)
+```Репозиторий поднят на собственных мощностях https://git.askarpoff.site/, ни gitlab.com, ни Managed Gitlab меня не устроили.```
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/db3d4d74-fde4-4418-91d7-c1aba41d5096)
+```очень примитивный докерфайл с сайтом-лендингом```
+   
 2. Регистр с собранным docker image. В качестве регистра может быть DockerHub или [Yandex Container Registry](https://cloud.yandex.ru/services/container-registry), созданный также с помощью terraform.
+```В качестве регистра использовал Dockerhub, вроде не принципиально```
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/b50921b9-4d61-4b6d-b17c-bdb7fe73f068)
 
 ---
 ### Подготовка cистемы мониторинга и деплой приложения
@@ -119,18 +129,110 @@
 2. Задеплоить тестовое приложение, например, [nginx](https://www.nginx.com/) сервер отдающий статическую страницу.
 
 Рекомендуемый способ выполнения:
-1. Воспользовать пакетом [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus), который уже включает в себя [Kubernetes оператор](https://operatorhub.io/) для [grafana](https://grafana.com/), [prometheus](https://prometheus.io/), [alertmanager](https://github.com/prometheus/alertmanager) и [node_exporter](https://github.com/prometheus/node_exporter). При желании можете собрать все эти приложения отдельно.
-2. Для организации конфигурации использовать [qbec](https://qbec.io/), основанный на [jsonnet](https://jsonnet.org/). Обратите внимание на имеющиеся функции для интеграции helm конфигов и [helm charts](https://helm.sh/)
-3. Если на первом этапе вы не воспользовались [Terraform Cloud](https://app.terraform.io/), то задеплойте в кластер [atlantis](https://www.runatlantis.io/) для отслеживания изменений инфраструктуры.
+[+]1. Воспользовать пакетом [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus), который уже включает в себя [Kubernetes оператор](https://operatorhub.io/) для [grafana](https://grafana.com/), [prometheus](https://prometheus.io/), [alertmanager](https://github.com/prometheus/alertmanager) и [node_exporter](https://github.com/prometheus/node_exporter). При желании можете собрать все эти приложения отдельно.
+<strike>2. Для организации конфигурации использовать [qbec](https://qbec.io/), основанный на [jsonnet](https://jsonnet.org/). Обратите внимание на имеющиеся функции для интеграции helm конфигов и [helm charts](https://helm.sh/)
+3. Если на первом этапе вы не воспользовались [Terraform Cloud](https://app.terraform.io/), то задеплойте в кластер [atlantis](https://www.runatlantis.io/) для отслеживания изменений инфраструктуры.</strike>
 
 Альтернативный вариант:
-1. Для организации конфигурации можно использовать [helm charts](https://helm.sh/)
+[+]1. Для организации конфигурации можно использовать [helm charts](https://helm.sh/)
+
+В скрипте:
+Устанавливаю gitlab-runner от своего Gitlab
+```bash
+helm install --namespace gitlab gitlab-runner gitlab/gitlab-runner \
+  --set rbac.create=true \
+  --set gitlabUrl=https://git.askarpoff.site/ \
+  --set runnerRegistrationToken=$(cat runnertoken) \
+  -f ./gitlab/config.toml
+```
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/90dbf240-fbfe-4490-9053-3f736707b19f)
+
+Устанавливаю ingress-контроллер
+```helm install --namespace stage ingress-nginx ingress-nginx/ingress-nginx```
 
 Ожидаемый результат:
 1. Git репозиторий с конфигурационными файлами для настройки Kubernetes.
-2. Http доступ к web интерфейсу grafana.
-3. Дашборды в grafana отображающие состояние Kubernetes кластера.
-4. Http доступ к тестовому приложению.
+В gitlab файл <b>k8s.yaml</b>
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simpleapp
+  namespace: stage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simpleapp
+  template:
+    metadata:
+      namespace: simpleapp
+      labels:
+        app: simpleapp
+    spec:
+      containers:
+        - name: simpleapp
+          image: __VERSION__
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets:
+        - name: regcred
+```
+<b>.gitlab-ci.yml</b>
+```
+docker-build:
+  image: docker:cli
+  stage: build
+  services:
+    - docker:dind
+  variables:
+    DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build  -t "$DOCKER_IMAGE_NAME" .
+    - docker push "$DOCKER_IMAGE_NAME"
+  rules:
+    - if: $CI_COMMIT_BRANCH
+      exists:
+        - Dockerfile
+docker-build-tag:
+  only: [tags]
+  image: docker:cli
+  stage: build
+  services:
+    - docker:dind
+  variables:
+    DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build  -t "$DOCKER_IMAGE_NAME" .
+    - docker push "$DOCKER_IMAGE_NAME"
+deploy:
+  only: [tags]
+  image: gcr.io/cloud-builders/kubectl:latest
+  stage: deploy
+  variables:
+    DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+  script:
+    - kubectl config set-cluster "diplomregionalcluster" --server="$KUBE_URL" --insecure-skip-tls-verify=true
+    - kubectl config set-credentials admin-user --token="$KUBE_TOKEN"
+    - kubectl config set-context stage --cluster="diplomregionalcluster" --user=admin-user
+    - kubectl config use-context stage
+    - sed -i "s,__VERSION__,"$DOCKER_IMAGE_NAME"," k8s.yaml
+    - kubectl apply -f k8s.yaml
+```
+В настройках CI/CD установлены переменные для доступа к регистру и к кластеру k8s
+
+![image](https://github.com/askarpoff/devops-diplom/assets/108946489/57c731a9-f2f1-4551-a829-37ddd6165eb6)
+
+3. Http доступ к web интерфейсу grafana.
+
+4. Дашборды в grafana отображающие состояние Kubernetes кластера.
+
+5. Http доступ к тестовому приложению.
 
 ---
 ### Установка и настройка CI/CD
