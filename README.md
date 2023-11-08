@@ -492,6 +492,7 @@ Job succeeded
 </details>
 3. При создании тега (например, v1.0.0) происходит сборка и отправка с соответствующим label в регистр, а также деплой соответствующего Docker образа в кластер Kubernetes.
 Выпустим релиз с тегом 1.1
+
 ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/e68e1fb0-7d8c-4c11-bd77-99edb8cd42bf)
 
 ![image](https://github.com/askarpoff/devops-diplom/assets/108946489/43263bde-5c71-4d5e-9cd1-4175a784fa79)
